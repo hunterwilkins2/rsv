@@ -14,6 +14,7 @@ Each record is seperated by the terminate row byte (0xFD).
 rsv files have an advantage over other data encoding formats, such as csv, in that
 an rsv file doesn't require a header for its fields, supports UTF-8 encodings,
 avoid delimiter collisions, and multiple rsv files can be simply concatenated.
+
 ## Installation
 ```
 go get github.com/hunterwilkins2/rsv
