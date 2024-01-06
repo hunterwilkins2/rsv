@@ -2,6 +2,8 @@ package rsv
 
 import (
 	"bytes"
+	"encoding/csv"
+	"io"
 	"strings"
 	"testing"
 )
@@ -58,6 +60,73 @@ func TestRead(t *testing.T) {
 					t.Errorf("#%d Got %v; want %v", n, out, tt.Output)
 				}
 			}
+		}
+	}
+}
+
+type nTimes struct {
+	s   string
+	n   int
+	off int
+}
+
+func (r *nTimes) Read(p []byte) (n int, err error) {
+	for {
+		if r.n <= 0 || r.s == "" {
+			return n, io.EOF
+		}
+		n0 := copy(p, r.s[r.off:])
+		p = p[n0:]
+		n += n0
+		r.off += n0
+		if r.off == len(r.s) {
+			r.off = 0
+			r.n--
+		}
+		if len(p) == 0 {
+			return
+		}
+	}
+}
+
+const benchmarkReadData = "x\xFFy\xFFz\xFF\xFF\xFDx\xFFy\xFF\xFF\xFF\xFDx\xFF\xFF\xFF\xFF\xFD\xFF\xFF\xFF\xFF\xFDx\xFFy\xFFz\xFFw\xFF\xFDx\xFFy\xFFz\xFF\xFF\xFDx\xFFy\xFF\xFF\xFF\xFDx\xFF\xFF\xFF\xFF\xFD\xFF\xFF\xFF\xFF\xFD"
+
+func BenchmarkRead(b *testing.B) {
+	b.ReportAllocs()
+	r := NewReader(&nTimes{s: benchmarkReadData, n: b.N})
+	for {
+		_, err := r.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+const benchmarkCSVData = `x,y,z,w
+x,y,z,
+x,y,,
+x,,,
+,,,
+"x","y","z","w"
+"x","y","z",""
+"x","y","",""
+"x","","",""
+"","","",""
+`
+
+func BenchmarkCSVRead(b *testing.B) {
+	b.ReportAllocs()
+	r := csv.NewReader(&nTimes{s: benchmarkCSVData, n: b.N})
+	for {
+		_, err := r.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			b.Fatal(err)
 		}
 	}
 }

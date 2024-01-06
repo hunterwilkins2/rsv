@@ -2,6 +2,7 @@ package rsv
 
 import (
 	"bytes"
+	"encoding/csv"
 	"errors"
 	"strings"
 	"testing"
@@ -62,10 +63,40 @@ func TestError(t *testing.T) {
 	}
 
 	f = NewWriter(errorWriter{})
-	f.WriteAll([][]string{{"abc"}})
+	f.Write([]string{"abc"})
 	f.Flush()
 	err = f.Error()
 	if err == nil {
 		t.Error("Error should not be nil")
+	}
+}
+
+var benchmarkWriteData = [][]string{
+	{"abc", "def", "12356", "1234567890987654311234432141542132"},
+	{"abc", "def", "12356", "1234567890987654311234432141542132"},
+	{"abc", "def", "12356", "1234567890987654311234432141542132"},
+}
+
+func BenchmarkWrite(b *testing.B) {
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		w := NewWriter(&bytes.Buffer{})
+		err := w.WriteAll(benchmarkWriteData)
+		if err != nil {
+			b.Fatal(err)
+		}
+		w.Flush()
+	}
+}
+
+func BenchmarkCSVWrite(b *testing.B) {
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		w := csv.NewWriter(&bytes.Buffer{})
+		err := w.WriteAll(benchmarkWriteData)
+		if err != nil {
+			b.Fatal(err)
+		}
+		w.Flush()
 	}
 }

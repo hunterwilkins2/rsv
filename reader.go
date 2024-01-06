@@ -14,6 +14,13 @@ var (
 
 type Reader struct {
 	r *bufio.Reader
+
+	// recordBuffer holds the fields on after another.
+	// The fields can be accessed by using the indexes in fieldIndexes
+	recordBuffer []byte
+
+	// fieldIndex is an index of fields inside recordBuffer
+	fieldIndexes []int
 }
 
 // NewReader returns a new Reader that reads from r.
@@ -37,12 +44,14 @@ func (r *Reader) Read() ([]string, error) {
 
 	s := 0 // starting search index
 	startedReading := false
-	var record []string
+	r.recordBuffer = r.recordBuffer[:0]
+	r.fieldIndexes = r.fieldIndexes[:0]
 	for i := 0; i < len(b)-1; i++ {
 		if b[i] == terminateValue {
 			length := i - s
 			startedReading = false
-			record = append(record, string(b[s:s+length]))
+			r.recordBuffer = append(r.recordBuffer, b[s:s+length]...)
+			r.fieldIndexes = append(r.fieldIndexes, len(r.recordBuffer))
 			s = i + 1
 			continue
 		}
@@ -50,6 +59,14 @@ func (r *Reader) Read() ([]string, error) {
 	}
 	if startedReading {
 		return nil, ErrUnterminatedField
+	}
+
+	str := string(r.recordBuffer) // batch string allocations
+	record := make([]string, len(r.fieldIndexes))
+	var preIdx int
+	for i, idx := range r.fieldIndexes {
+		record[i] = str[preIdx:idx]
+		preIdx = idx
 	}
 	return record, nil
 }
