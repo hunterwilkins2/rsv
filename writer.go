@@ -49,7 +49,7 @@ func (w *Writer) Flush() {
 // to ensure that the record is written to the underlying [io.Writer]
 func (w *Writer) Write(record []string) error {
 	for _, field := range record {
-		_, err := w.w.Write([]byte(field))
+		_, err := w.w.WriteString(field)
 		if err != nil {
 			return err
 		}
